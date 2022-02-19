@@ -45,7 +45,9 @@ def generateForest(
 
 
 def plot(world, start=None, goal=None, tree=None, size=None):
-    ax = plt.figure().add_subplot(projection="3d")
+    fig = plt.figure()
+    ax = fig.gca(projection="3d")
+    # ax = plt.figure().add_subplot(projection="3d")
     world.plot(ax)
 
     if size is None:
