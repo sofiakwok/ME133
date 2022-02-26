@@ -68,13 +68,12 @@ def generateMediumMaze(ws=50, wh=50):
     for x in range(ws-11):
         for y in range(ws-11):
             space = np.random.uniform(0, 1)
-            length = np.random.randint(3, 7)
-            multiplier = np.random.randint(0, 1)
-            if space > 0.99:
-                wall[x:x+length*multiplier, y:y+length*(1-multiplier), :] = True
+            length = np.random.randint(3, 10)
+            multiplier = np.random.randint(0, 2)
+            if space > 0.98:
+                wall[x:x+(length*multiplier)+1, y:y+(length*(1-multiplier))+1, :] = True
 
     world = floor | wall
-    print(np.shape(wall))
 
     colors = np.empty(world.shape, dtype=object)
     colors[floor] = "darkgreen"
