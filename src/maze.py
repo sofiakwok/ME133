@@ -49,38 +49,15 @@ def generateSimpleMaze(ws=50, wh=50):
     floor = np.zeros((ws, ws, wh), dtype=bool)
     floor[:, :, 0] = True
 
-    mask = np.random.uniform(0, 1, (ws, ws, 1)) > 0.9
-    wall = np.repeat(mask, wh, axis=2)
+    mask = np.random.uniform(0, 1, (ws, ws)) > 0.9
+    wall = np.tile(mask, (1, 1, wh - 1))
 
-    world = floor | wall
-
-    colors = np.empty(world.shape, dtype=object)
-    colors[floor] = "darkgreen"
-    colors[wall] = "grey"
-    return World(world, colors)
-
-def generateMediumMaze(ws=50, wh=50):
-    floor = np.zeros((ws, ws, wh), dtype=bool)
-    floor[:, :, 0] = True
-
-    wall = np.zeros((ws, ws, wh), dtype=bool)
-
-    for x in range(ws):
-        for y in range(ws):
-            space = np.random.uniform(0, 1)
-            length_x = np.random.randint(0, 5)
-            length_y = np.random.randint(0, 5)
-            if space > 0.95:
-                wall[x:x + length_x, y:y+length_y, 1:wh] = True
-
-    print(np.shape(wall))
-    world = floor | wall
+    word = floor | wall
 
     colors = np.empty(world.shape, dtype=object)
     colors[floor] = "darkgreen"
     colors[wall] = "grey"
     return World(world, colors)
-
 
 def generateWall(ws=50, wh=50, wall_height=20, start=None, goal=None):
     world = np.zeros((ws, ws, wh), dtype=bool)
@@ -130,7 +107,7 @@ if __name__ == "__main__":
     goalstate = State(45, 45, 2)
 
     print("generate")
-    world = generateMediumMaze()
+    world = generateWall(wall_height=45)
 
     visibleWorld = None
     tree = None
