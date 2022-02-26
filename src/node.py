@@ -2,10 +2,10 @@ import numpy as np
 
 
 class Node:
-    def __init__(self, state, parent=None, children=[]) -> None:
+    def __init__(self, state, parent=None) -> None:
         self.state = state
         self.parent = parent
-        self.children = children
+        self.children = []
 
     def addChild(self, node):
         self.children.append(node)
