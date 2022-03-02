@@ -45,6 +45,7 @@ def generateForest(
 
     return World(world, colors)
 
+
 def generateSimpleMaze(ws=50, wh=50):
     floor = np.zeros((ws, ws, wh), dtype=bool)
     floor[:, :, 0] = True
@@ -59,19 +60,24 @@ def generateSimpleMaze(ws=50, wh=50):
     colors[wall] = "grey"
     return World(world, colors)
 
+
 def generateMediumMaze(ws=50, wh=50):
     floor = np.zeros((ws, ws, wh), dtype=bool)
     floor[:, :, 0] = True
 
     wall = np.zeros((ws, ws, wh), dtype=bool)
 
-    for x in range(ws-11):
-        for y in range(ws-11):
+    for x in range(ws - 11):
+        for y in range(ws - 11):
             space = np.random.uniform(0, 1)
             length = np.random.randint(3, 10)
             multiplier = np.random.randint(0, 2)
             if space > 0.98:
-                wall[x:x+(length*multiplier)+1, y:y+(length*(1-multiplier))+1, :] = True
+                wall[
+                    x : x + (length * multiplier) + 1,
+                    y : y + (length * (1 - multiplier)) + 1,
+                    :,
+                ] = True
 
     world = floor | wall
 
@@ -129,7 +135,7 @@ if __name__ == "__main__":
     goalstate = State(45, 45, 2)
 
     print("generate")
-    world = generateMediumMaze()
+    world = generateMediumMaze(wh=10)
 
     visibleWorld = None
     tree = None
@@ -146,8 +152,12 @@ if __name__ == "__main__":
             tree = Tree(goalstate)
             tree.RRT(visibleWorld, startstate)
         else:
+            print("prune")
             tree.prune(visibleWorld)
+            tree.check()
+            print("RRT")
             tree.RRT(visibleWorld, startstate)
+            tree.check()
 
         path = tree.getPath()
         if path is None:
@@ -157,6 +167,8 @@ if __name__ == "__main__":
             startstate = startstate.intermediate(
                 path[1].state, min(1, step_size / startstate.distance(path[1].state))
             )
+
+        print(startstate.l)
 
         plot(visibleWorld, tree=tree, save=i)
         i += 1

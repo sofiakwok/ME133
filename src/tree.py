@@ -65,21 +65,29 @@ class Tree:
                 return None
 
     def recursiveRemove(self, n):
-        if n.parent is not None:
+        print("remove:", n, "children:", n.children)
+        while len(n.children) > 0:
+            self.recursiveRemove(n.children[0])
+        if n.parent is not None and n in n.parent.children:
             n.parent.children.remove(n)
-        self.tree.remove(n)
-        for c in n.children:
-            self.recursiveRemove(c)
+        if n in self.tree:
+            self.tree.remove(n)
 
     def prune(self, world):
         if self.startnode is not None:
             # print("children at prune:", self.startnode.children)
             self.recursiveRemove(self.startnode)
             self.startnode = None
+            self.check()
 
-        for n in self.tree:
-            if n.parent is not None and not world.connectsTo(n.state, n.parent.state):
-                self.recursiveRemove(n)
+        shouldRemove = [
+            n
+            for n in self.tree
+            if n.parent is not None and not world.connectsTo(n.state, n.parent.state)
+        ]
+        for n in shouldRemove:
+            self.recursiveRemove(n)
+        self.check()
 
     def getPath(self):
         if self.startnode is None:
@@ -120,3 +128,28 @@ class Tree:
         if self.startstate is not None:
             pts = np.vstack((self.startstate.l, self.goalstate.l)).transpose()
             ax.scatter(pts[0], pts[1], pts[2], color=["green", "red"])
+
+    def check(self):
+        if self.startnode is not None:
+            assert self.startnode.parent is not None
+            assert len(self.startnode.children) == 0
+
+        countNones = 0
+        for n in self.tree:
+            assert self.tree.count(n) == 1
+            if n.parent is None:
+                countNones += 1
+            else:
+                if self.tree.count(n.parent) != 1:
+                    print(n)
+                    print(n.state.l)
+                    print(n.parent)
+                    print(n.parent.state.l)
+                    print(n.parent.children)
+                    assert False
+            for c in n.children:
+                assert self.tree.count(c) == 1
+                assert n.children.count(c) == 1
+                assert c.parent == n
+
+        assert countNones == 1

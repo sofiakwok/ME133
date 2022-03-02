@@ -6,7 +6,7 @@ import numpy as np
 class World:
     def __init__(self, init_world, colors=None) -> None:
         self.world = init_world
-        self.size = np.array(init_world.shape) + 1
+        self.size = np.array(init_world.shape)
 
         if colors is not None:
             assert self.world.shape == colors.shape
@@ -21,7 +21,7 @@ class World:
         return np.max(self.world.shape)
 
     def freespace(self, state):
-        if np.any(state.l > self.size) or np.any(state.l) < 0:
+        if np.any(state.l >= self.size) or np.any(state.l) < 0:
             return False  # leaving the world is not allowed
         else:
             idx = state.l.astype(int)
