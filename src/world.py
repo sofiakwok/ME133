@@ -1,10 +1,13 @@
 from node import State
 
+from multiprocessing import Pool
+from functools import partial
+
 import numpy as np
 
 
 class World:
-    def __init__(self, init_world, colors=None) -> None:
+    def __init__(self, init_world, colors=None, seen=None) -> None:
         self.world = init_world
         self.size = np.array(init_world.shape)
 
@@ -14,23 +17,39 @@ class World:
         else:
             self.colors = None
 
-    def plot(self, ax):
-        ax.voxels(self.world, facecolors=self.colors)
+        if seen is not None:
+            assert self.world.shape == seen.shape
+            self.seen = seen
+        else:
+            self.seen = np.zeros(self.world.shape, dtype=bool)
+
+    def plot(self, ax, seen_only=True, draw_unseen=False):
+        if seen_only:
+            ax.voxels(np.logical_and(self.world, self.seen), facecolors=self.colors)
+            if draw_unseen:
+                ax.voxels(np.logical_and(self.world, np.logical_not(self.seen)))
+        else:
+            ax.voxels(self.world, facecolors=self.colors)
 
     def maxsize(self):
         return np.max(self.world.shape)
 
-    def freespace(self, state):
+    def freespace(self, state, seen_only):
         if np.any(state.l >= self.size) or np.any(state.l) < 0:
             return False  # leaving the world is not allowed
         else:
             idx = state.l.astype(int)
+            if seen_only:
+                return not (
+                    self.world[idx[0]][idx[1]][idx[2]]
+                    and self.seen[idx[0]][idx[1]][idx[2]]
+                )
             return not self.world[idx[0]][idx[1]][idx[2]]
 
-    def connectsTo(self, state1, state2, freq=10):
+    def connectsTo(self, state1, state2, seen_only=True, freq=10):
         checkpoints = np.arange(0, 1, 1 / (state1.distance(state2) * freq))
         for c in checkpoints:
-            if not self.freespace(state1.intermediate(state2, c)):
+            if not self.freespace(state1.intermediate(state2, c), seen_only):
                 return False
         return True
 
@@ -75,7 +94,9 @@ class World:
                     np.floor(intermediate.l), np.array([x, y, z])
                 ):
                     return True
-                if not self.freespace(state.intermediate(vstate, checkpoints[i])):
+                if not self.freespace(
+                    state.intermediate(vstate, checkpoints[i]), False
+                ):
                     break
 
         return False
@@ -91,6 +112,34 @@ class World:
 
         return World(init_world, colors=self.colors)
 
+    def see_test(self, l, state):
+        return self.seen[l[0], l[1], l[2]] or self.connectsToVoxel(
+            state, l[0], l[1], l[2]
+        )
+
+    def multi_see(self, state):
+        locs = []
+        for i in range(self.world.shape[0]):
+            for j in range(self.world.shape[1]):
+                for k in range(self.world.shape[2]):
+                    locs.append((i, j, k))
+
+        res = []
+        with Pool(8) as p:
+            res = p.map(partial(self.see_test, state=state), locs)
+
+        for i in range(len(locs)):
+            self.seen[locs[i][0], locs[i][1], locs[i][2]] = res[i]
+
+    def see(self, state):
+        for i in range(self.world.shape[0]):
+            for j in range(self.world.shape[1]):
+                for k in range(self.world.shape[2]):
+                    self.seen[i, j, k] = self.seen[i, j, k] or self.connectsToVoxel(
+                        state, i, j, k
+                    )
+
     def combine(self, newWorld):
-        combined = np.logical_or(self.world, newWorld.world)
-        return World(combined, self.colors)
+        combined_world = np.logical_or(self.world, newWorld.world)
+        combined_seen = np.logical_or(self.seen, newWorld.seen)
+        return World(combined_world, self.colors, combined_seen)

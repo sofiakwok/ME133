@@ -6,6 +6,9 @@ from tree import Tree
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from multiprocessing import Process
+
+MULTITHREAD_SAVE = True
 
 
 def generateForest(
@@ -137,26 +140,29 @@ if __name__ == "__main__":
     print("generate")
     world = generateMediumMaze(wh=10)
 
-    visibleWorld = None
+    # visibleWorld = None
     tree = None
     i = 0
+
+    save_process = None
+
     while startstate.distance(goalstate) > 1:
         print("visible")
-        newWorld = world.visibleFrom(startstate)
-        visibleWorld = (
-            newWorld if visibleWorld is None else visibleWorld.combine(newWorld)
-        )
+        world.multi_see(startstate)
+        # visibleWorld = (
+        #    newWorld if visibleWorld is None else visibleWorld.combine(newWorld)
+        # )
 
         print("tree")
         if tree is None:
             tree = Tree(goalstate)
-            tree.RRT(visibleWorld, startstate)
+            tree.RRT(world, startstate)
         else:
             print("prune")
-            tree.prune(visibleWorld)
+            tree.prune(world)
             tree.check()
             print("RRT")
-            tree.RRT(visibleWorld, startstate)
+            tree.RRT(world, startstate)
             tree.check()
 
         path = tree.getPath()
@@ -170,5 +176,11 @@ if __name__ == "__main__":
 
         print(startstate.l)
 
-        plot(visibleWorld, tree=tree, save=i)
+        if MULTITHREAD_SAVE:
+            if save_process is not None:
+                save_process.join()
+            save_process = Process(target=plot, args=(world, tree, None, i))
+            save_process.start()
+        else:
+            plot(world, tree=tree, save=i)
         i += 1
