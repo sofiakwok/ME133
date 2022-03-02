@@ -21,20 +21,26 @@ class Tree:
         # check if we actually need to grow the tree (start may already be visible)
         # searching from the most recently added node back along its parents
         # probably want to change this a little bit to search from all nodes at the ends of branches
-        startStateSearching = True
-        n = self.tree[len(self.tree)-1]
-        while startStateSearching:
+        for n in self.tree:
             if world.connectsTo(startstate, n.state):
                 self.startnode = Node(startstate, parent=n)
                 n.addChild(self.startnode)
                 self.tree.append(self.startnode)
                 return self.startnode
-                startStateSearching = False
-            if type(n.parent) != Node:
-                startStateSearching = False
-                break
-            else: 
-                n = n.parent
+        # startStateSearching = True
+        # n = self.tree[len(self.tree) - 1]
+        # while startStateSearching:
+        #     if world.connectsTo(startstate, n.state):
+        #         self.startnode = Node(startstate, parent=n)
+        #         n.addChild(self.startnode)
+        #         self.tree.append(self.startnode)
+        #         return self.startnode
+        #         startStateSearching = False
+        #     if type(n.parent) != Node:
+        #         startStateSearching = False
+        #         break
+        #     else:
+        #         n = n.parent
 
         while True:
             # Determine the target state.
@@ -75,7 +81,7 @@ class Tree:
                 return None
 
     def recursiveRemove(self, n):
-        #print("remove:", n, "children:", n.children)
+        # print("remove:", n, "children:", n.children)
         while len(n.children) > 0:
             self.recursiveRemove(n.children[0])
         if n.parent is not None and n in n.parent.children:
