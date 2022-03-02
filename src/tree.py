@@ -19,12 +19,19 @@ class Tree:
         # Loop.
 
         # check if we actually need to grow the tree (start may already be visible)
-        for n in self.tree:
+        startStateSearching = True
+        n = self.tree[len(self.tree)-1]
+        while startStateSearching:
             if world.connectsTo(startstate, n.state):
                 self.startnode = Node(startstate, parent=n)
                 n.addChild(self.startnode)
                 self.tree.append(self.startnode)
                 return self.startnode
+                startStateSearching = False
+            if type(n.parent) != Node:
+                startStateSearching = False
+            else: 
+                n = n.parent
 
         while True:
             # Determine the target state.
