@@ -21,12 +21,36 @@ class Tree:
         # check if we actually need to grow the tree (start may already be visible)
         # searching from the most recently added node back along its parents
         # probably want to change this a little bit to search from all nodes at the ends of branches
+        # for n in self.tree:
+        #     if world.connectsTo(startstate, n.state):
+        #         self.startnode = Node(startstate, parent=n)
+        #         n.addChild(self.startnode)
+        #         self.tree.append(self.startnode)
+        #         return self.startnode
+
+
+         # an attempt
+        nodes = [] # (node, branchsize/nodes leading up to it)
         for n in self.tree:
+            if n.parent == None:
+                nodes.append((n, 0))
+            else:
+                branchSize = 0
+                currParent = n.parent
+                while currParent != None:
+                    branchSize += 1
+                    currParent = currParent.parent
+                nodes.append((n, branchSize))
+        
+        nodes.sort(key=lambda y: y[1])
+        for (n, index) in nodes:
             if world.connectsTo(startstate, n.state):
                 self.startnode = Node(startstate, parent=n)
                 n.addChild(self.startnode)
                 self.tree.append(self.startnode)
                 return self.startnode
+
+                
         # startStateSearching = True
         # n = self.tree[len(self.tree) - 1]
         # while startStateSearching:
