@@ -136,6 +136,8 @@ if __name__ == "__main__":
     step_size = 1
     startstate = State(5, 5, 2)
     goalstate = State(45, 45, 2)
+    cornerCounter = 0
+    #potential goal states: opposite corner, left corner, right corner, center?
 
     print("generate")
     world = generateMediumMaze(wh=10)
@@ -174,7 +176,15 @@ if __name__ == "__main__":
                 path[1].state, min(1, step_size / startstate.distance(path[1].state))
             )
 
-        print(startstate.l)
+        if startstate.distance(goalstate) < 5:
+            cornerCounter += 1
+            if cornerCounter == 1:
+                goalstate = State(2, 45, 2)
+            else if cornerCounter == 2:
+                goalstate = State(45, 2, 2)
+            else if cornerCounter == 3:
+                goalstate = State(25, 25, 2)
+
 
         if MULTITHREAD_SAVE:
             if save_process is not None:
