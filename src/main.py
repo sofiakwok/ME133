@@ -176,14 +176,18 @@ if __name__ == "__main__":
                 path[1].state, min(1, step_size / startstate.distance(path[1].state))
             )
 
+        """
         if startstate.distance(goalstate) < 5:
+            print("new goal")
             cornerCounter += 1
+            print(cornerCounter)
             if cornerCounter == 1:
                 goalstate = State(2, 45, 2)
-            else if cornerCounter == 2:
+            elif cornerCounter == 2:
                 goalstate = State(45, 2, 2)
-            else if cornerCounter == 3:
+            elif cornerCounter == 3:
                 goalstate = State(25, 25, 2)
+                """
 
 
         if MULTITHREAD_SAVE:
