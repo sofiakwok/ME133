@@ -4,10 +4,12 @@ from multiprocessing import Pool
 from functools import partial
 
 import numpy as np
+import scipy
+from scipy import ndimage
 
 
 class World:
-    def __init__(self, init_world, colors=None, seen=None) -> None:
+    def __init__(self, init_world, colors=None, seen=None, inaccessible=None) -> None:
         self.world = init_world
         self.size = np.array(init_world.shape)
 
@@ -22,6 +24,29 @@ class World:
             self.seen = seen
         else:
             self.seen = np.zeros(self.world.shape, dtype=bool)
+
+        if inaccessible is not None:
+            assert self.world.shape == inaccessible.shape
+            self.inaccessible = inaccessible
+        else:
+            self.inaccessible = np.zeros(self.world.shape, dtype=bool)
+
+        weight_size = 15
+        weight_size = weight_size if weight_size % 2 == 1 else weight_size + 1
+        weight_center = int(weight_size / 2)
+        self.distance_weights = np.zeros((weight_size, weight_size, weight_size))
+        for i in range(weight_size):
+            for j in range(weight_size):
+                for k in range(weight_size):
+                    if i == weight_center and j == weight_center and k == weight_center:
+                        self.distance_weights[i, j, k] = 1
+                    else:
+                        self.distance_weights[i, j, k] = 1 / (
+                            (i - weight_center) ** 2
+                            + (j - weight_center) ** 2
+                            + (k - weight_center) ** 2
+                        )
+        self.distance_weights = self.distance_weights / np.sum(self.distance_weights)
 
     def plot(self, ax, seen_only=True, draw_unseen=False):
         if seen_only:
@@ -117,7 +142,7 @@ class World:
             state, l[0], l[1], l[2]
         )
 
-    def multi_see(self, state):
+    def multiSee(self, state):
         locs = []
         for i in range(self.world.shape[0]):
             for j in range(self.world.shape[1]):
@@ -143,3 +168,58 @@ class World:
         combined_world = np.logical_or(self.world, newWorld.world)
         combined_seen = np.logical_or(self.seen, newWorld.seen)
         return World(combined_world, self.colors, combined_seen)
+
+    def closestUnexplored(self, state, best_state=None):
+        for i in range(self.world.shape[0]):
+            for j in range(self.world.shape[1]):
+                for k in range(self.world.shape[2]):
+                    if (
+                        not self.seen[i, j, k]
+                        and not self.inaccessible[i, j, k]
+                        and (
+                            best_state is None
+                            or state.distance(State(i + 0.5, j + 0.5, k + 0.5))
+                            < state.distance(best_state)
+                        )
+                    ):
+                        best_state = State(i + 0.5, j + 0.5, k + 0.5)
+        return best_state
+
+    def bestUnexplored(self, state, best_state=None):
+        nearby_scores = scipy.ndimage.convolve(
+            np.logical_not(self.seen).astype(np.float64),
+            self.distance_weights,
+            mode="constant",
+        )
+
+        for i in range(self.world.shape[0]):
+            for j in range(self.world.shape[1]):
+                for k in range(self.world.shape[2]):
+                    if (
+                        not self.seen[i, j, k]
+                        and not self.inaccessible[i, j, k]
+                        and (
+                            best_state is None
+                            or state.distance(State(i + 0.5, j + 0.5, k + 0.5))
+                            / max(0.01, nearby_scores[i, j, k])
+                            < state.distance(best_state)
+                            / max(
+                                0.01,
+                                nearby_scores[
+                                    int(best_state.l[0]),
+                                    int(best_state.l[1]),
+                                    int(best_state.l[2]),
+                                ],
+                            )
+                        )
+                    ):
+                        best_state = State(i + 0.5, j + 0.5, k + 0.5)
+        return best_state
+
+    def stateSeen(self, state):
+        idx = state.l.astype(int)
+        return self.seen[idx[0], idx[1], idx[2]]
+
+    def markInaccessible(self, state):
+        idx = state.l.astype(int)
+        self.inaccessible[idx[0], idx[1], idx[2]] = True

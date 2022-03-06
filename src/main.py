@@ -124,23 +124,25 @@ def plot(world, tree=None, size=None, save=None):
     if save is None:
         plt.show()
     else:
-        plt.savefig("out/n" + f"{save:04}" + ".png")
+        plt.savefig("out/n" + f"{save:04}" + ".png", dpi=300)
         ax.view_init(0, -90)
-        plt.savefig("out/s" + f"{save:04}" + ".png")
+        plt.savefig("out/s" + f"{save:04}" + ".png", dpi=300)
         ax.view_init(90, 0)
-        plt.savefig("out/t" + f"{save:04}" + ".png")
+        plt.savefig("out/t" + f"{save:04}" + ".png", dpi=300)
         plt.close()
 
 
 if __name__ == "__main__":
     step_size = 1
     startstate = State(5, 5, 2)
-    goalstate = State(45, 45, 2)
+    goalstate = None
     cornerCounter = 0
-    #potential goal states: opposite corner, left corner, right corner, center?
+    # potential goal states: opposite corner, left corner, right corner, center?
 
     print("generate")
-    world = generateMediumMaze(wh=10)
+    # world = generateMediumMaze(wh=10)
+    world = generateWall(wall_height=40)
+    # world = generateForest()
 
     # visibleWorld = None
     tree = None
@@ -148,47 +150,42 @@ if __name__ == "__main__":
 
     save_process = None
 
-    while startstate.distance(goalstate) > 1:
+    while True:
         print("visible")
-        world.multi_see(startstate)
-        # visibleWorld = (
-        #    newWorld if visibleWorld is None else visibleWorld.combine(newWorld)
-        # )
+        world.multiSee(startstate)
 
-        print("tree")
-        if tree is None:
-            tree = Tree(goalstate)
-            tree.RRT(world, startstate)
-        else:
-            print("prune")
-            tree.prune(world)
-            tree.check()
-            print("RRT")
-            tree.RRT(world, startstate)
-            tree.check()
+        path = None
+        while path is None:
+            if goalstate is None or world.stateSeen(goalstate):
+                print("get target")
+                goalstate = world.bestUnexplored(startstate)
+                if goalstate is None:
+                    if save_process is not None:
+                        save_process.join()
+                    plot(world, save=i)
+                    exit(0)
+                tree = None
 
-        path = tree.getPath()
-        if path is None:
-            print("PATH NOT FOUND")
-            exit(0)
+            print("tree")
+            if tree is None:
+                tree = Tree(goalstate)
+                tree.RRT(world, startstate)
+            else:
+                print("prune")
+                tree.prune(world)
+                tree.check()
+                print("RRT")
+                tree.RRT(world, startstate)
+                tree.check()
+
+            path = tree.getPath()
+            if path is None:
+                world.markInaccessible(goalstate)
+                goalstate = None
         else:
             startstate = startstate.intermediate(
                 path[1].state, min(1, step_size / startstate.distance(path[1].state))
             )
-
-        """
-        if startstate.distance(goalstate) < 5:
-            print("new goal")
-            cornerCounter += 1
-            print(cornerCounter)
-            if cornerCounter == 1:
-                goalstate = State(2, 45, 2)
-            elif cornerCounter == 2:
-                goalstate = State(45, 2, 2)
-            elif cornerCounter == 3:
-                goalstate = State(25, 25, 2)
-                """
-
 
         if MULTITHREAD_SAVE:
             if save_process is not None:
